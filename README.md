@@ -65,14 +65,17 @@ Search documents have to be in JSON format and have a generic wrapper:
 
 Note that each search document needs to have a `@search.action` key with a value that will usually be `upload` (which means insert a new document or update an existing document with the same id).
 
-To add documents, one can use the REST API:
+To add article documents, one can use the REST API:
 
 ```bash
 curl -X POST \
   'https://yyyyyyy.search.windows.net/indexes/publications-index/docs/index?api-version=2020-06-30' \
   -H 'Content-Type: application/json' \
   -H 'api-key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \
+  -d "@articles.json"
 ```
+
+The body will be one of the JSON files.
 
 In my tests, adding one document is indeed instantaneous, i.e. the second after it has been added, you can search and find it in the index.
 
@@ -86,3 +89,9 @@ In the main part of the window is the list of results. This is clearly proof-of-
 No ordering at this point, I guess they are returned in the order they have been added.
 
 ![Screenshot of search interface](./search-results.png "Screenshot of search interface")
+
+# Todo
+
+- [ ] make a small search app (not just the webpage)
+- [ ] investigate ordering
+- [ ] investigate weights on fields
