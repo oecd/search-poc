@@ -90,6 +90,26 @@ No ordering at this point, I guess they are returned in the order they have been
 
 ![Screenshot of search interface](./search-results.png "Screenshot of search interface")
 
+## Statistics
+
+To get basic stats on the index (number of indexed documents, storage in bytes occupied):
+
+```bash
+curl -X GET \
+  'https://yyyyyyy.search.windows.net/indexes/publications-index/stats?api-version=2020-06-30' \
+  -H 'Content-Type: application/json' \
+  -H 'api-key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+```
+Returns:
+
+```json
+{
+    "@odata.context": "https://yyyyyyy.search.windows.net/$metadata#Microsoft.Azure.Search.V2020_06_30.IndexStatistics",
+    "documentCount": 3314,
+    "storageSize": 28192393
+}
+```
+
 # Todo
 
 - [ ] make a small search app (not just the webpage)
