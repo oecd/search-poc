@@ -4,6 +4,8 @@ This is some information about a Proof of concept for a Microsoft Azure-based se
 
 This is using the Visual Studio subscription and its (limited) resources.
 
+There are API keys for management (i.e. working with the index) and for querying (i.e. sending query requests and retrieving results).
+
 ## Document preparation
 
 Probably most time (as is usually the case) was spent converting our existing XML data to JSON that are suitable for the search engine.
@@ -68,10 +70,20 @@ To add documents, one can use the REST API:
 
 ```
 curl -X POST \
-  'https://oecd-org-search-service.search.windows.net/indexes/publications-index/docs/index?api-version=2020-06-30' \
+  'https://yyyyyyy.search.windows.net/indexes/publications-index/docs/index?api-version=2020-06-30' \
   -H 'Content-Type: application/json' \
   -H 'api-key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \
 ```
 
+In my tests, adding one document is indeed instantaneous, i.e. the second after it has been added, you can search and find it in the index.
 
 ## Search
+
+Microsoft offers to generate a super-basic page that allows to query the search engine and display the results.
+
+As you can see, there are facets on the left which allow to filter and drill down. At the top there is the search box.
+In the main part of the window is the list of results. This is clearly proof-of-concept quality, but that's fine.
+
+No ordering at this point, I guess they are returned in the order they have been added.
+
+![Screenshot of search interface](./search-results.png "Screenshot of search interface")
