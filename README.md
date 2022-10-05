@@ -8,7 +8,7 @@ There are API keys for management (i.e. working with the index) and for querying
 
 ## Document preparation
 
-Probably most time (as is usually the case) was spent converting our existing XML data to JSON that are suitable for the search engine.
+Probably most time (as is usually the case) was spent converting our existing XML data to JSON documents that are suitable for the search engine.
 
 I have used data from our "Discovery Service" that has basic metadata, like:
 * id, ISBN and DOI (that can be used to go to OECD iLibrary)
@@ -29,11 +29,10 @@ Whenever a change must be made that touches an existing field, the index needs t
 
 There needs to go a lot of thinking in what we want the search engine to do when setting up the index.
 
-There is a basic configuration file in `config/index.json`.
+There is a basic configuration file in `config/index.json`. This can be used via the REST API to set up an index quickly. So far I've only used the UI for the index set-up.
 
 ![Screenshot of index set-up](./index-screenshot.png "Screenshot of index set-up")
 
-This can be used via the REST API to set up an index quickly. So far I've only used the UI for the index set-up.
 
 ### Sizing
 
@@ -45,7 +44,7 @@ This can be used via the REST API to set up an index quickly. So far I've only u
 
 Search documents have to be in JSON format and have a generic wrapper:
 
-```
+```json
 {
     "value": [
         {
@@ -68,7 +67,7 @@ Note that each search document needs to have a `@search.action` key with a value
 
 To add documents, one can use the REST API:
 
-```
+```bash
 curl -X POST \
   'https://yyyyyyy.search.windows.net/indexes/publications-index/docs/index?api-version=2020-06-30' \
   -H 'Content-Type: application/json' \
