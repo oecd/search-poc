@@ -114,6 +114,14 @@ Returns:
 
 # Todo
 
+- [ ] use blob storage for indexing
+- [ ] add official documents (based on the metadata available)
+- [ ] add current web pages (just the metadata of course)
 - [ ] make a small search app (not just the webpage)
-- [ ] investigate ordering
-- [ ] investigate weights on fields
+- [ ] investigate ordering and weights on fields
+- [ ] use index alias (to point to one or several indexes and replace them)
+- [ ] update documentation regarding space needs (when you need to rebuild an index, you actually create a copy of the existing one and at some stage switch to the new one; this means keep 50% of space free)
+- [ ] rights to update indexes (to avoid breaking some)
+- [ ] naming conventions once they emerge (use month-year to know when they were created)
+- [ ] document how to recreate an index (we actually need to keep all JSONs around for this)
+- [ ] elaborate AEM scenarios to add to the search index (and when to recreate the index how to do that?!)
