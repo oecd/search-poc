@@ -21,6 +21,8 @@ I have used data from our "Discovery Service" that has basic metadata, like:
 * thumbnail (to display something in the search results)
 * authors, publishers, speakers, hosts
 
+I have added an overarching property, `domain`, that can be `publications`, `official-documents`, `legal-instruments`, `data`, whatever we can think of. This can be exposed if we deem it to be useful.
+
 ## Index configuration
 
 This is not very straightforward, lots of trial and error. The user interface of the Azure portal is clunky.
