@@ -1,0 +1,6 @@
+_logs
+*.log
+data/**/*
+data/*
+search-poc.properties
+TMP

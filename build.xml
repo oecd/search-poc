@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." name="search-poc" default="build-publication-index">
+
+    <import file="${basedir}/ant-common.xml"/>
+    
+    <property name="api-base-url" value="https://oecd-org-search-service.search.windows.net/"/>
+    <property name="api-version" value="api-version=2021-04-30-Preview"/>
+    
+    <!-- index actions -->
+    <target name="rebuild-all-indexes" depends="delete-all-indexes, build-all-indexes"></target>
+    
+    <target name="delete-all-indexes"></target>
+    
+    <target name="build-all-indexes"></target>
+    
+    <!-- 
+    DELETE https://[service name].search.windows.net/indexes/[index name]?api-version=[api-version]  
+  Content-Type: application/json  
+  api-key: [admin key]  
+    -->
+    <target name="delete-index">
+        <apicall 
+            url="${api-base-url}indexes/${publication-index-name}?api-version=2020-06-30"
+            method="DELETE"
+            proxy="${proxy}"
+            contenttype="application/json">
+            <arg line="-H 'api-key: ${api-key}'"/>            
+        </apicall>
+    </target>
+    
+    <target name="build-publication-index">
+        <copy file="index-config/${publication-index-file}" tofile="TMP/${publication-index-file}"/>
+        <replace file="TMP/${publication-index-file}"
+            token="__INDEX_NAME__"
+            value="${publication-index-name}"/>
+        <apicall 
+            url="https://oecd-org-search-service.search.windows.net/indexes?api-version=2021-04-30-Preview"
+            method="POST"
+            proxy="${proxy}"
+            contenttype="application/json"
+            file="TMP/${publication-index-file}">
+            <arg line="-H 'api-key: ${api-key}'"/>            
+        </apicall>
+    </target>
+    
+    <!-- get index stats -->
+    <target name="get-index-stats"></target>
+    
+    
+    <!-- data actions -->
+    <target name="generate-publications-data"></target>
+    
+    <target name="load-publications-data"></target>
+    
+    <target name="delete-publications-data"></target>
+    
+    
+</project>

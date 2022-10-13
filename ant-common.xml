@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project
+    name="commons"
+    xmlns:unless="ant:unless"
+    xmlns:if="ant:if"
+  >
+    <property environment="ENV"/>
+        
+    <!-- GLOBAL LOGS FILE -->
+    <tstamp>
+        <format property="TODAY" pattern="yyyyMMdd_HHmmss"/>
+        <format property="NOW" pattern="yyyyMMdd_HHmmss"/>
+    </tstamp>
+    <property name="logname" value="${basedir}/_logs/${TODAY}_${ant.project.name}.log"/>
+    <record name="${logname}" action="start"/>
+    
+    <antversion property="is.ant.version.ok" atleast="1.9.3"/>
+    <fail unless="is.ant.version.ok" message="YOUR ANT INSTALLATION IS TOO OLD"/>
+    
+    <!-- Environment specific properties -->
+    <loadproperties srcFile="${ant.project.name}.properties">
+        <filterchain>
+            <expandproperties/>
+        </filterchain>
+    </loadproperties>
+        
+    <property name="tmp.dir" value="${ENV.TMP}" unless:set="tmp.dir"/>
+    
+    <!--****************
+    * COMMON MACRO DEF *
+    *****************-->
+    
+    <!-- "Simple" API call, via cURL -->
+    <macrodef name="apicall">
+        <attribute name="tn" default="apicall"/>
+        <attribute name="method" default="GET"/>
+        <attribute name="url"/>
+        <attribute name="failonerror" default="true"/>
+        <attribute name="user" default=""/>
+        <attribute name="pass" default=""/>
+        <attribute name="file" default=""/>
+        <attribute name="contenttype" default=""/>
+        <attribute name="outputproperty" default=""/>
+        <attribute name="headerspropertyprefix" default=""/>
+        <attribute name="errorproperty" default=""/>
+        <attribute name="outputfile" default=""/>
+        <attribute name="quiet" default="false"/>
+        <attribute name="proxy" default=""/>
+        <attribute name="debug" default="false"/>
+       
+        <element name="http-headers" optional="true" implicit="true" 
+            description="Allows to provide additional CURL arguments, 
+            especially HTTP headers, as-is"/>
+        
+        <sequential>
+            <local name="exec.output"/>
+            <local name="exec.output.file.body"/>
+            <local name="exec.output.content.body"/>
+            <local name="exec.result"/>
+            
+            
+            <!-- copy in temp folder to avoid long paths -->
+            <local name="file.temp" />
+            <tempfile property="file.temp" deleteonexit="true" unless:blank="@{file}"/>
+            <copy file="@{file}" tofile="${file.temp}" quiet="true" force="true" unless:blank="@{file}"/>
+            
+            <local name="auth"/>
+            <condition property="auth" value="@{user}:@{pass}" else="">
+                <and>
+                    <not><equals arg1="@{user}" arg2=""/></not>
+                    <not><equals arg1="@{pass}" arg2=""/></not>
+                </and>
+            </condition>
+            
+            <local name="post.data.length"/>
+            <length file="${file.temp}" property="post.data.length" unless:blank="@{file}" />
+            
+            <echo taskName="@{tn}" message=">> @{method} @{url}" />
+            <echo taskName="@{tn}" message="   + [@{file}] - ${post.data.length} bytes" unless:blank="@{file}"/>
+            
+            <tempfile deleteonexit="true" createfile="true" property="exec.output.file.body" prefix="curl-body-" destdir="${tmp.dir}"/>
+            <tempfile deleteonexit="true" createfile="true" property="exec.output.file.headers" prefix="curl-headers-" destdir="${tmp.dir}"/>
+            
+            <exec executable="${ENV.PATH_CURL}\curl" failonerror="false" outputproperty="exec.output" resultproperty="exec.result" taskName="@{tn}">
+                <!-- METHOD -->
+                <arg line="-X @{method}"/>
+                
+                <arg line="-v" if:true="@{debug}"/>
+                
+                <!-- Ignore SSL validation Errors -->
+                <arg line="--insecure"/>
+                
+                <!-- authentication stuff -->
+                <arg line="--anyauth --user ${auth}" unless:blank="${auth}"/>
+                
+                <!-- proxy -->
+                <arg line="--proxy @{proxy}" unless:blank="@{proxy}"/>
+                
+                <!-- silent but show error -->
+                <arg line="-s"/>
+                <!-- be verbose ???  usefull on errors? but will it work on DOWNLOADS, ok it only in headers file?  -->
+                <!--arg line="-v"/-->
+                
+                <!-- header to remove any Expect value that might be set by default -->
+                <arg line="-H 'Expect:'"/>
+                
+                <arg line="-H 'Content-Length ${post.data.length}'" if:set="${post.data.length}"/>
+                
+                <!-- output body and headers in temp file -->
+                <arg line="--output &quot;${exec.output.file.body}&quot;"/>
+                <arg line="--dump-header &quot;${exec.output.file.headers}&quot;"/>
+                
+                <!-- do not use -fail, it hides the error response body -->
+                <!--<arg value="-\-fail"/>-->
+                
+                <!-- return http code as exec output -->
+                <arg line="--write-out &quot;%{http_code}&quot;"/>
+
+                <!-- disable globbing (so [] are usable) -->
+                <arg value="--globoff"/>
+                <!-- body of the request, if any -->
+                <arg line="-H 'Content-Type: @{contenttype}'" unless:blank="@{contenttype}"/>
+                <arg line="--data-binary @${file.temp}" unless:blank="@{file}"/>
+                <!-- can't post with empty body ! -->
+                <arg line="--data &quot; &quot;" if:blank="@{file}"/>
+                
+                
+                <!-- URL that will handle the request -->
+                <arg value="@{url}"/>
+                
+                <!-- Add any optional HTTP headers provided by the <http-headers/> nested element -->
+                <http-headers/>
+            </exec>
+            
+            <!-- Process headers file to determine response status -->
+            <!-- convert 'HTTP/1.1 202 Appserver deleted' string into ant properties:
+                  header.status.class = first number of the code (to detect success/failure)
+                  header.status.code = complete response http code
+                  header.status.text = label returned with the code
+            -->
+            <local name="header.status.code"/>
+            <local name="header.status.class"/>
+            <local name="header.status.text"/>
+            <local name="header.file.exists"/>
+            <available file="${exec.output.file.headers}" property="header.file.exists"/>
+            <loadfile property="exec.output.content.headers" srcfile="${exec.output.file.headers}" quiet="true" if:set="header.file.exists"/>
+            <loadproperties srcFile="${exec.output.file.headers}" prefix="header.status" if:set="header.file.exists">
+                <filterchain>
+                    <tokenfilter>
+                        <containsregex pattern="HTTP/.*" flags="i"/>
+                        <replaceregex  pattern="HTTP/.+ ((\d)\d{2}) (.*)" replace="code = \1${line.separator}class = \200${line.separator}text = \3"/>
+                    </tokenfilter>
+                </filterchain>
+            </loadproperties>
+            <!--<echoproperties prefix="header.status."/>-->
+            <property name="header.status.code" value="000"/>
+            <property name="header.status.text" value="No results"/>
+            <echo taskName="@{tn}" message="&lt;&lt; HTTP Response: ${header.status.code} ${header.status.text} (curl exit code = ${exec.result})"/>
+            
+            <local name="http.ok"/>
+            <condition property="http.ok">
+                <or>
+                    <equals arg1="${header.status.class}" arg2="200" />
+                </or>
+            </condition>
+            
+            <!-- headers handling -->
+            <!-- NOTE : if this macro is called in a loop, you need to set 'local' all used properties in the caller target -->
+            <sequential unless:blank="@{headerspropertyprefix}" if:set="header.file.exists">
+                <property name="@{headerspropertyprefix}.response.class" value="${header.status.class}"/>
+                <property name="@{headerspropertyprefix}.response.code" value="${header.status.code}"/>
+                <property name="@{headerspropertyprefix}.response.text" value="${header.status.text}"/>
+                <loadproperties srcFile="${exec.output.file.headers}" prefix="@{headerspropertyprefix}">
+                    <filterchain>
+                        <tokenfilter>
+                            <containsregex pattern="(\w)\: (.*)" flags="i"/>
+                            <replaceregex  pattern="(\w)\: (.*)" replace="\1 = \2"/>
+                        </tokenfilter>
+                    </filterchain>
+                </loadproperties>
+                <echoproperties taskName="@{tn}" prefix="@{headerspropertyprefix}." unless:true="@{quiet}"/>
+            </sequential>
+            
+            
+            <!-- api call succeeded -->
+            <sequential if:set="http.ok">
+                <!-- body handling -->
+                <loadfile property="exec.output.content.body" srcfile="${exec.output.file.body}" quiet="true"/>
+                <sequential if:set="exec.output.content.body">
+                    <property name="@{outputproperty}" value="${exec.output.content.body}" unless:blank="@{outputproperty}"/>
+                    <echo taskName="@{tn}" message="${exec.output.content.body}" unless:true="@{quiet}"/>
+                </sequential>
+                <sequential unless:blank="@{outputfile}">
+                    <move file="${exec.output.file.body}" tofile="@{outputfile}" quiet="true"/>
+                    <echo taskName="@{tn}" message="Saved result in @{outputfile}"/>
+                </sequential>
+            </sequential>
+            
+            <!-- api call failed -->
+            <sequential unless:set="http.ok">
+                <loadfile property="exec.output.content.body" srcfile="${exec.output.file.body}" quiet="true"/>
+                <echo taskName="@{tn}" message="${exec.output.content.body}"/>
+                <!-- even if api call failed it may be needed to have its output saved in file -->
+                <sequential unless:blank="@{outputfile}">
+                    <move file="${exec.output.file.body}" tofile="@{outputfile}" quiet="true"/>
+                </sequential>
+                
+                <condition property="@{errorproperty}">
+                    <not><equals arg1="@{errorproperty}" arg2=""/></not>
+                </condition>
+                
+                <fail message="CURL(${exec.result}) Returned HTTP Code: ${exec.output}" if:true="@{failonerror}"/>
+            </sequential>
+            
+            <echo message="----- Response DEBUG START -----" if:true="@{debug}"/>
+            <echo message="----- Response HEADERS -----" if:true="@{debug}"/>
+            <echo message="${exec.output.content.headers}" if:true="@{debug}"/>
+            <echo message="----- Response BODY -----" if:true="@{debug}"/>
+            <echo message="${exec.output.content.body}" if:true="@{debug}"/>
+            <echo message="----- Response DEBUG END -----" if:true="@{debug}"/>
+            
+            <delete quiet="true">
+                <file file="${exec.output.file.body}"/>
+                <file file="${exec.output.file.headers}"/>
+                <file file="${file.temp}" unless:blank="@{file}"/>
+            </delete>
+        </sequential>
+    </macrodef>
+    
+    <!-- Paged API Calls, via PowerShell -->
+    <macrodef name="pagedApiCall">
+        <attribute name="endpoint"/>
+        <attribute name="user" default=""/>
+        <attribute name="pass" default=""/>
+        <attribute name="apikey" default=""/>
+        <attribute name="outdir"/>
+        <attribute name="basename" default="export"/>
+        <attribute name="pagesize" default="100"/>
+        <attribute name="tn" default="pagedapicall"/>
+        <attribute name="failonerror" default="true"/>
+        <sequential>
+            <dirname property="cd" file="${ant.file.commons}"/>
+            <!-- pagesize must an integer greater than 0 otherwhise set to a default value, 100  -->
+            <local name="apipagesize"/>
+            <condition property="apipagesize" else="100" value="@{pagesize}">
+                <matches pattern="^[1-9]\d*$" string="@{pagesize}"/>
+            </condition>
+
+            <if>
+                <os family="windows" />
+                <then>
+                    <PowershellExec tn="@{tn}" script="${cd}/PagedExport.ps1" failonerror="@{failonerror}" version="5.0">
+                        <arg value="-endpoint "/>
+                        <arg value="'@{endpoint}'"/>
+                        <arg line="-user @{user}" unless:blank="@{user}"/>
+                        <arg line="-pass @{pass}" unless:blank="@{pass}"/>
+                        <arg line="-apikey @{apikey}" unless:blank="@{apikey}"/>
+                        <arg line="-size ${apipagesize}"/>
+                        <arg line="-basename @{basename}"/>
+                        <arg line="-outdirectory &quot;@{outdir}&quot;"/>
+                    </PowershellExec>
+                </then>
+                <else>
+                    <exec taskName="@{tn}" executable="${cd}/paged-export.sh" failonerror="true">
+                        <arg value="-endpoint"/> <arg value="@{endpoint}"/>
+                        <arg value="-apikey" unless:blank="@{apikey}"/> <arg value="@{apikey}" unless:blank="@{apikey}"/>
+                        <arg value="-size"/> <arg value="${apipagesize}"/>
+                        <arg value="-basename"/> <arg value="@{basename}"/>
+                        <arg value="-outdirectory"/> <arg value="@{outdir}"/>
+                    </exec>
+                </else>
+            </if>
+
+        </sequential>
+    </macrodef>
+    
+    <!-- PowerShell Exec Macrodef -->
+    <macrodef name="PowershellExec">
+        <attribute name="script"/>
+        <attribute name="tn"/><!-- the attribute 'taskname' is reserved -->
+        <attribute name="version" default="2.0"/>
+        <attribute name="failonerror" default="true"/>
+        <element name="arguments" optional="true" implicit="true"/>
+        <sequential>
+            <tempfile deleteonexit="true" property="exec-log"/>
+            <record name="${exec-log}" action="start"/>
+            <trycatch>
+                <try>
+                    <if>
+                        <equals arg1="@{version}" arg2="7.2"/>
+                         <then>
+                             <exec taskName="@{tn}" executable="${ENV.PATH_PWSH}/pwsh.exe" failonerror="true">
+                                 <!--<arg line="-Version @{version}"/>
+                                 <arg line="-ExecutionPolicy RemoteSigned"/>-->
+                                 <arg line="-Command @{script}"/>
+                                 <arguments/>
+                             </exec>
+                         </then>
+                         <else>
+                             <exec taskName="@{tn}" executable="powershell" failonerror="true">
+                                <arg line="-Version @{version}"/>
+                                <arg line="-ExecutionPolicy RemoteSigned"/>
+                                <arg line="-Command @{script}"/>
+                                <arguments/>
+                            </exec>
+                         </else>
+                    </if>
+                    <record name="${exec-log}" action="stop"/>
+                </try>
+                <catch>
+                    <local name="message"/>
+                    <record name="${exec-log}" action="stop"/>
+                    <loadfile property="message" srcFile="${exec-log}"/>
+                    <mail if:set="mail.host"
+                        from="${mail.from}"
+                        tolist="${mail.to}"
+                        mailhost="${mail.host}"
+                        subject="[${ant.project.name}] @{tn} - [ERROR] - Some errors occurred during @{tn}!">
+                        <message mimetype="text/html"><![CDATA[<pre>${message}</pre>]]></message>
+                    </mail>
+                    <fail if:true="@{failonerror}" message="${message}"/>
+                </catch>
+            </trycatch>
+        </sequential>
+    </macrodef>
+
+    <!-- Git Repository Check helper -->
+    <macrodef name="checkgit">
+        <attribute name="repo"/>
+        <sequential>
+            <local name="checkgit.isdirty"/>
+            
+            <gitstatus repo="@{repo}" isdirty="checkgit.isdirty"/>
+            <condition property="checkgit.isdirty">
+                <available file="@{repo}\.git\index.lock" type="file"></available>
+            </condition>
+            
+            <if>
+                <isset property="checkgit.isdirty"/>
+                <then>
+                    <mail mailhost="${mail.host}" subject="[${ant.project.name}] CheckGitRepositories - Failure - ${ant.project.name} tasks are now suspended!" tolist="${mail.to}">
+                        <from address="${mail.from}"/>
+                        <message mimetype="text/html"><![CDATA[<body style="font-family:verdana">
+                            @{repo} git repository is not commited or the index is locked. Tasks processing is now suspended.<br>
+                            <br>
+                            <small><i>This message was generated by a program</i></small>
+                        </body>]]></message>
+                    </mail>
+                    <fail message="Git repository '@{repo}' is dirty. Process is stopped."/>
+                </then>
+                <else>
+                    <echo message="Git repository '@{repo}' is clean. Process keeps going."/>
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+    
+    <scriptdef name="memory" language="javascript">
+    <![CDATA[
+        var runtime = java.lang.Runtime.getRuntime();
+
+        var memFree = parseInt(runtime.freeMemory()/1024/1024, 10);
+        var memAlloc = parseInt(runtime.totalMemory()/1024/1024, 10);
+        var memMax = parseInt(runtime.maxMemory()/1024/1024, 10);
+
+        // compat with Java 8
+        if (typeof println == 'undefined') this.println = print;
+        println('Free: ' + memFree + 'MiB / Allocated: ' + memAlloc + 'MiB / Max: ' + memMax + 'MiB');
+    ]]>
+    </scriptdef>
+    
+    <!-- returns 'less' if arg1 < arg2, 'equal' if arg1 = arg2, 'greater' if arg1 > arg2 -->
+    <scriptdef language="javascript" 
+        name="compare"
+        uri="http://www.oecd.org/ns/ant-common/scriptdef">
+        <attribute name="arg1" />
+        <attribute name="arg2" />
+        <attribute name="result" />
+        <![CDATA[
+            var val1 = parseInt(attributes.get("arg1"));
+            var val2 = parseInt(attributes.get("arg2"));
+            var result = (val1 > val2 ? 'greater' : (val1 < val2 ? 'less' : 'equal'));
+            project.setProperty(attributes.get("result"), result);
+            ]]>
+    </scriptdef>
+    
+    <macrodef name="linecount">
+        <attribute name="file"/>
+        <attribute name="property"/>
+        <element name="filters" implicit="true" optional="true"/>
+        <sequential>
+            <resourcecount property="@{property}">
+                <tokens>
+                    <concat>
+                        <filterchain>
+                            <tokenfilter>
+                                <linetokenizer/>
+                            </tokenfilter>
+                            <filters/>
+                        </filterchain>
+                        <fileset file="@{file}"/>
+                    </concat>
+                </tokens>
+            </resourcecount>
+        </sequential>
+    </macrodef>
+
+    <!--**************
+    * COMMON TARGETS *
+    ***************-->
+    
+    <!-- TARGETS FOR ERROR HANDLING -->
+    <property name="isrunning.file" value="${basedir}\is_running_flag.tmp"/>
+    <available property="isrunning.flag" file="${isrunning.file}" type="file"/>
+    
+    <target name="CheckRunningStatus" if="isrunning.flag">
+        <mail mailhost="${mail.host}" subject="[${ant.project.name}] CheckRunningStatus - Failure - ${ant.project.name} tasks are now suspended !" tolist="${mail.to}">
+            <from address="${mail.from}"/>
+            <message mimetype="text/html"><![CDATA[The IsRunning flag is still <b>on</b>, the ${ant.project.name} channel has a pending issue and can't go further!<br>
+            After fixing the problem, don't forget to delete the '${isrunning.file}' file.<br>
+            <br>
+            <i>This message was generated by a program</i>]]></message>
+        </mail>
+        <fail message="The IsRunning file has been detected !"/>
+    </target>
+
+    <target name="GenerateRunningFlag" depends="CheckRunningStatus">
+        <echo message="Generating isrunning file..."/>
+        <echo message="${logname}" file="${isrunning.file}"/>
+    </target>
+
+    <target name="RemoveRunningFlag">
+        <echo message="Removing isrunning file..."/>
+        <delete file="${isrunning.file}"/>
+    </target>
+    <!-- TARGETS FOR ERROR HANDLING -->
+
+    <!-- TARGETS FOR GIT PROCESSING -->
+    <target name="GitStatus">
+        <stopwatch name="sw.gitstatus.target"/>
+        <gitstatus repo="${git.repository}" untracked="untracked" modified="modified" missing="missing" />
+        <stopwatch name="sw.gitstatus.target" action="total"/>
+    </target>
+
+    <target name="GitCommit">
+        <stopwatch name="sw.gitcommit.target"/>
+        
+        <property name="git.allow.empty.commit" value="true"/>
+        <condition property="git.do.commit">
+            <istrue value="${git.allow.empty.commit}"/>
+        </condition>
+        
+        <sequential unless:set="git.do.commit">
+            <echo message="check if there is something to commit"/>
+            <stopwatch name="sw.gitcommit.status"/>
+            <gitstatus repo="${git.repository}" isdirty="git.do.commit"/>
+            <stopwatch name="sw.gitcommit.status" action="total"/>
+            
+            <echo message="nothing to commit, working directory clean" unless:set="git.do.commit"/>
+        </sequential>
+        
+        <sequential if:set="git.do.commit">
+            <property name="git.commit.message" value="Daily update"/>
+            <git repo="${git.repository}">
+                <echo message="adds, modifies, and removes index entries"/>
+                <stopwatch name="sw.gitcommit.add"/>
+                <gitadd all="true"/>
+                <stopwatch name="sw.gitcommit.add" action="total"/>
+                
+                <echo message="perform commit"/>
+                <stopwatch name="sw.gitcommit.commit"/>
+                <gitcommit message="${git.commit.message}">
+                    <committer name="Automate" email="noreply-automate@oecd.org"/>
+                </gitcommit>
+                <stopwatch name="sw.gitcommit.commit" action="total"/>
+            </git>
+        </sequential>
+        
+        <stopwatch name="sw.gitcommit.target" action="total"/>
+    </target>
+
+    <condition property="git.push.enabled">
+        <istrue value="${git.push}"/>
+    </condition>
+    <target name="GitPush" if="git.push.enabled">
+
+        <!-- usual case so far: no proxy required because git repo is local -->
+        <sequential unless:set="proxy.required">
+            <gitpush repo="${git.repository}" refspecs="master">
+                <credentials username="${git.username}" password="${git.password}"/>
+            </gitpush>
+        </sequential>
+
+        <!-- if the proxy.required property is set to true, use the setproxy task, 
+             and the proxy.host and proxy.port properties -->
+        <sequential if:set="proxy.required">
+            <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}"/>
+            <gitpush repo="${git.repository}" refspecs="master">
+                <credentials username="${git.username}" password="${git.password}"/>
+            </gitpush>
+        </sequential>
+
+    </target>
+    <!-- TARGETS FOR GIT PROCESSING -->
+    
+    <!--*************************-->
+    <!-- CHECK LAST BUILD STATUS -->
+    <!--*************************-->
+    <target name="CheckLastBuild">
+        <!-- find last build log -->
+        <fileset id="logs" dir="${basedir}\_logs" includes="*.log"/>
+        
+        <script language="javascript"> <![CDATA[
+            // Read fileset
+            var fs = project.getReference("logs");
+            
+            // Get the files (array) of that fileset
+            ds = fs.getDirectoryScanner(project);
+            srcFiles = ds.getIncludedFiles();
+            
+            // select last - 1
+            var lastBuildLog = srcFiles[srcFiles.length - 2]
+            echo = project.createTask("echo");
+            echo.setMessage("Checking log file: " + lastBuildLog);
+            echo.perform();
+            
+            // Set prop
+            project.setProperty("lastBuildLog", lastBuildLog)
+        ]]></script>
+        
+        <condition property="failed" value="true">
+            <resourcecontains resource="${basedir}\_logs\${lastBuildLog}" substring="BUILD FAILED"/>
+        </condition>
+        
+        <echo message="${lastBuildLog}: FAILED!" if:set="failed"/>
+        <echo message="${lastBuildLog}: SUCCESS \o/" unless:set="failed"/>
+        
+        <mail mailhost="${mail.host}" subject="[${ant.project.name}] failed !" tolist="${mail.to}" if:set="failed">
+            <from address="${mail.from}"/>
+            <message mimetype="text/html"><![CDATA[The last execution log of ${ant.project.name} contains a BUILD FAILURE. See attached log.<br>
+            <br>
+            <i>This message was generated by a program</i>]]></message>
+            <attachments>
+                <file file="${basedir}\_logs\${lastBuildLog}"/>
+            </attachments>
+        </mail>
+        
+    </target>
+    
+    <!--*************************-->
+    <!-- Antenna House Formatter -->
+    <!--*************************-->
+    <macrodef name="ahf">
+        <attribute name="tn" default="ahf"/>
+        <attribute name="input"/>
+        <attribute name="output"/>
+        <attribute name="server" default="PAC-AHF-1.main.oecd.org"/>
+        
+        <sequential>
+            <java jar="${ENV.PATH_AHFCLIENT}\xds-client.jar" fork="true" taskName="@{tn}">
+                <arg value="-xds-host"/>
+                <arg value="@{server}"/>
+                <arg value="-d"/>
+                <arg value="@{input}"/>
+                <arg value="-o"/>
+                <arg value="@{output}"/>
+                <arg value="-pdfver"/>
+                <arg value="PDF1.4"/>
+                <arg value="-picc"/>
+                <arg value="1"/>
+                <arg value="-picg"/>
+                <arg value="1"/>
+                <arg value="-pcics"/>
+                <arg value="-pgbar"/>
+                <arg value="-xds-parse-media"/>
+                <arg value="-2pass"/>
+            </java>
+        </sequential>
+        
+    </macrodef>
+    
+
+</project>

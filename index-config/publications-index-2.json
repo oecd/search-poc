@@ -1,7 +1,7 @@
 {
     "@odata.context": "https://oecd-org-search-service.search.windows.net/$metadata#indexes/$entity",
     "@odata.etag": "\"0x8DAA6D6F922BFBB\"",
-    "name": "publications-index-2",
+    "name": "__INDEX_NAME__",
     "defaultScoringProfile": "",
     "fields": [
       {

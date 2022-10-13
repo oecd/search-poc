@@ -112,6 +112,14 @@ Returns:
 }
 ```
 
+# Questions
+
+1. Multi-language index (https://learn.microsoft.com/en-us/azure/search/search-language-support). Would you recommend the cited approach to maintaining several indexes (there may be duplication, that's true)?
+1. In the context of a multi-language index, would it be preferable to have `"description_en": ...` and `"description_fr": ...` vs `"description": { "en": ..., "fr": ...}`
+1. Can I only query one index at a time? The `alias` feature makes reference to an `indexes` array (plural)
+1. How can I enforce some security among domains? Suppose an index containing documents from different domains (publications, blogs, legal documents, ...), and different actors are responsible for each one. How can I ensure they don't accidentally or purposefully delete documents from another domain?
+1.  Regarding blob storage: is ingress and especially egress (indexer accessing files in blob storage)  measured and invoiced?
+1. Can you confirm that we should always have at least 50% of available index space free in order to be able to rebuild a new version of an index (to be switched out via `alias`)?
 # Todo
 
 - [ ] use blob storage for indexing
