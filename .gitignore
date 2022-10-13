@@ -4,3 +4,5 @@ data/**/*
 data/*
 search-poc.properties
 TMP
+libs/*.jar
+*.proj
