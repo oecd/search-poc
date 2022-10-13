@@ -33,7 +33,7 @@ There needs to go a lot of thinking in what we want the search engine to do when
 
 There is a basic configuration file in `config/index.json`. This can be used via the REST API to set up an index quickly. So far I've only used the UI for the index set-up.
 
-![Screenshot of index set-up](./index-screenshot.png "Screenshot of index set-up")
+![Screenshot of index set-up](./img/index-screenshot.png "Screenshot of index set-up")
 
 
 ### Sizing
@@ -81,6 +81,19 @@ The body will be one of the JSON files.
 
 In my tests, adding one document is indeed instantaneous, i.e. the second after it has been added, you can search and find it in the index.
 
+### Blob storage
+
+The preferred way seems to be to use Azure blob storage, where you keep your JSON search documents. Like this you can have an indexer (a special module of the search service) to index at regular intervals in case of new documents; but it's also useful when you need to recreate an index because of a change.
+
+Below a screenshot of three index attempts, the last one (first in the list) was a success:
+
+![Screenshot of search interface](./img/indexer-result.png "Screenshot of search interface")
+
+The reason for the others was that I had a skillset configured, to extract people, places and organisations. But as I'm using a not-really-paid-for subscription (Visual Studio Enterpris), it stops after 20 documents which is not really useful for our tests.
+
+I'm not sure why it only indexed 45589 out of 51K+ documents.
+
+Also, I noted that the structure of the JSON is not necessarily the same as when you send documents via REST API. More tests needed.
 ## Search
 
 Microsoft offers to generate a super-basic page that allows to query the search engine and display the results.
@@ -90,7 +103,7 @@ In the main part of the window is the list of results. This is clearly proof-of-
 
 No ordering at this point, I guess they are returned in the order they have been added.
 
-![Screenshot of search interface](./search-results.png "Screenshot of search interface")
+![Screenshot of search interface](./img/search-results.png "Screenshot of search interface")
 
 ## Statistics
 
