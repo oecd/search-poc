@@ -1,0 +1,25 @@
+{
+    "@odata.context": "https://oecd-org-search-service.search.windows.net/$metadata#indexers/$entity",
+    "@odata.etag": "\"0x8DAAEE18EA37530\"",
+    "name": "generic-indexer",
+    "description": "Looks at blob storage directory generic-index (which contains official documents only for the moment)",
+    "dataSourceName": "generic-index-storage",
+    "skillsetName": null,
+    "targetIndexName": "generic-index",
+    "disabled": null,
+    "schedule": null,
+    "parameters": {
+      "batchSize": null,
+      "maxFailedItems": 0,
+      "maxFailedItemsPerBatch": 0,
+      "base64EncodeKeys": null,
+      "configuration": {
+        "dataToExtract": "contentAndMetadata",
+        "parsingMode": "default"
+      }
+    },
+    "fieldMappings": [],
+    "outputFieldMappings": [],
+    "cache": null,
+    "encryptionKey": null
+  }
