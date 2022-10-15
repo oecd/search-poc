@@ -3,12 +3,7 @@
     "@odata.etag": "\"0x8DAAED2CC239EC4\"",
     "name": "generic-index",
     "defaultScoringProfile": "",
-    "fields": [
-      {
-        "name": "content",
-        "type": "Edm.ComplexType",
-        "fields": [
-          {
+    "fields": [{
             "name": "id",
             "type": "Edm.String",
             "searchable": true,
@@ -16,14 +11,14 @@
             "retrievable": true,
             "sortable": true,
             "facetable": false,
-            "key": false,
+            "key": true,
             "indexAnalyzer": null,
             "searchAnalyzer": null,
             "analyzer": "standard.lucene",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "domain",
             "type": "Edm.String",
             "searchable": false,
@@ -37,8 +32,8 @@
             "analyzer": null,
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "type",
             "type": "Edm.String",
             "searchable": false,
@@ -52,8 +47,8 @@
             "analyzer": null,
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "title_en",
             "type": "Edm.String",
             "searchable": true,
@@ -67,8 +62,8 @@
             "analyzer": "en.microsoft",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "date",
             "type": "Edm.DateTimeOffset",
             "searchable": false,
@@ -82,8 +77,8 @@
             "analyzer": null,
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "url",
             "type": "Edm.String",
             "searchable": true,
@@ -97,8 +92,8 @@
             "analyzer": "standard.lucene",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "image_url",
             "type": "Edm.String",
             "searchable": false,
@@ -112,8 +107,8 @@
             "analyzer": null,
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "title_fr",
             "type": "Edm.String",
             "searchable": true,
@@ -127,8 +122,8 @@
             "analyzer": "fr.microsoft",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "description_en",
             "type": "Edm.String",
             "searchable": true,
@@ -142,8 +137,8 @@
             "analyzer": "en.microsoft",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "description_fr",
             "type": "Edm.String",
             "searchable": true,
@@ -157,8 +152,8 @@
             "analyzer": "fr.microsoft",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "size",
             "type": "Edm.String",
             "searchable": false,
@@ -172,8 +167,8 @@
             "analyzer": null,
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "subjects_en",
             "type": "Collection(Edm.String)",
             "searchable": true,
@@ -187,8 +182,8 @@
             "analyzer": "en.microsoft",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "subjects_fr",
             "type": "Collection(Edm.String)",
             "searchable": true,
@@ -202,8 +197,8 @@
             "analyzer": "fr.microsoft",
             "normalizer": null,
             "synonymMaps": []
-          },
-          {
+        },
+        {
             "name": "languages",
             "type": "Collection(Edm.String)",
             "searchable": false,
@@ -217,174 +212,20 @@
             "analyzer": null,
             "normalizer": null,
             "synonymMaps": []
-          }
-        ]
-      },
-      {
-        "name": "metadata_storage_content_type",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_storage_size",
-        "type": "Edm.Int64",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_storage_last_modified",
-        "type": "Edm.DateTimeOffset",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_storage_content_md5",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_storage_name",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_storage_path",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": true,
-        "sortable": false,
-        "facetable": false,
-        "key": true,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_storage_file_extension",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_content_encoding",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_content_type",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      },
-      {
-        "name": "metadata_language",
-        "type": "Edm.String",
-        "searchable": false,
-        "filterable": false,
-        "retrievable": false,
-        "sortable": false,
-        "facetable": false,
-        "key": false,
-        "indexAnalyzer": null,
-        "searchAnalyzer": null,
-        "analyzer": null,
-        "normalizer": null,
-        "synonymMaps": []
-      }
+        }
     ],
     "scoringProfiles": [],
     "corsOptions": null,
-    "suggesters": [
-      {
+    "suggesters": [{
         "name": "sg",
         "searchMode": "analyzingInfixMatching",
         "sourceFields": [
-          "content/title_en",
-          "content/title_fr",
-          "content/subjects_en",
-          "content/subjects_fr"
+            "title_en",
+            "title_fr",
+            "subjects_en",
+            "subjects_fr"
         ]
-      }
-    ],
+    }],
     "analyzers": [],
     "normalizers": [],
     "tokenizers": [],
@@ -392,9 +233,9 @@
     "charFilters": [],
     "encryptionKey": null,
     "similarity": {
-      "@odata.type": "#Microsoft.Azure.Search.BM25Similarity",
-      "k1": null,
-      "b": null
+        "@odata.type": "#Microsoft.Azure.Search.BM25Similarity",
+        "k1": null,
+        "b": null
     },
     "semantic": null
-  }
+}
