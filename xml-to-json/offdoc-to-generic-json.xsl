@@ -21,7 +21,7 @@
         <xsl:param name="number"/>
         <xsl:variable name="langs" select="languages/language"/>
         <xsl:variable name="type" select="tokenize(type, '/')[last()]"/>
-        <xsl:variable name="normalized-id" select="replace(replace(replace(lower-case(id),'/', '-'), '\(', '-'), '\)', '-')"/>
+        <xsl:variable name="normalized-id" select="replace(replace(replace(replace(lower-case(id),'/', '-'), '\(', '-'), '\)', '-'), '\.', '-')"/>
         <xsl:variable name="dir" select="tokenize($normalized-id, '-')[1]"/>
         <xsl:variable name="file-lang" select="tokenize(url, '/')[last()-1]"/>
         
@@ -31,18 +31,17 @@
                 <string key="domain">official document</string>
                 <!-- can be one of three: official document, agenda, minutes of agenda -->
                 <string key="type"><xsl:value-of select="$type"/></string>
-                <string key="{concat('title_', $file-lang)}"><xsl:value-of select="concat(id, ' - ', title)"/></string>
+                <!-- title -->
+                <string key="{concat('title_', $file-lang)}"><xsl:value-of select="normalize-space(concat(id, ' - ', title))"/></string>
                 <string key="date"><xsl:value-of select="concat(date, 'Z')"/></string>
                 <string key="url"><xsl:value-of select="url"/></string>
-                <array key="lanugages">
+                <array key="languages">
                     <xsl:for-each select="$langs">
                         <string><xsl:value-of select="."/></string>
                     </xsl:for-each>
                 </array>
-                <xsl:if test="summary/text()">
-                    <string key="{concat('description_', $file-lang)}">
-                        <xsl:value-of select="summary"/>
-                    </string>
+                <xsl:if test="normalize-space(summary/text())">
+                    <string key="{concat('description_', $file-lang)}"><xsl:value-of select="normalize-space(summary)"/></string>
                 </xsl:if>
                 <xsl:if test="topics">
                     <!-- no hyphens accepted, need to use underscore -->
@@ -53,17 +52,13 @@
                     </array>
                 </xsl:if>
                 <xsl:if test="number-of-pages and number-of-pages ne '0'">
-                    <string key="size">
-                        <xsl:value-of select="number-of-pages/text()"/> pages
-                    </string>
+                    <string key="size"><xsl:value-of select="normalize-space(number-of-pages/text())"/> pages</string>
                 </xsl:if>
-                <string key="image_url">
-                    <xsl:choose>
+                <string key="image_url"><xsl:choose>
                         <xsl:when test="$type eq 'official document'">https://placekitten.com/340/460</xsl:when>
                         <xsl:when test="$type eq 'agenda'">https://picsum.photos/id/175/340/460</xsl:when>
                         <xsl:otherwise>https://picsum.photos/340/460</xsl:otherwise>
-                    </xsl:choose>
-                </string>
+                    </xsl:choose></string>
             </map>
         </xsl:variable>
         <!-- OUTPUT -->
@@ -75,82 +70,4 @@
         </xsl:result-document> 
     </xsl:template>
     
-    <!--
-        This template matches the root elements we may encounter and generates 
-        an XML node that can then be passed to the xml-to-json() function to 
-        generate correct JSON.
-        -->
-    <xsl:template match="Book | Article | Dataset | Indicator | Podcast | WorkingPaper | Summary" mode="json">
-        <xsl:variable name="id" select="tokenize(doi/@resource, '/')[last()]"/>
-        <xsl:variable name="type" select="lower-case(local-name(.))"/>
-        <xsl:variable name="lang" select="language/text()"/>
-        
-        <xsl:choose>
-            <xsl:when test="$lang = 'en' or $lang = 'fr'">
-                <map>
-                    
-                    <!-- french title TODO -->
-                    <xsl:if test="subTitle[en]">
-                        <string key="subTitle"><xsl:value-of select="subTitle[en]"/></string>
-                    </xsl:if>
-                    <xsl:if test="description[@lang='en' or @lang='fr']">
-                        <map key="description">
-                            <xsl:for-each select="description[@lang='en' or @lang='fr']">
-                                <string key="{@lang}"><xsl:value-of select="text()"
-                                /></string>
-                            </xsl:for-each>
-                        </map>
-                    </xsl:if>
-                    <xsl:if test="subject/title[@lang = 'en']">
-                        <!-- no hyphens accepted, need to use underscore -->
-                        <array key="subjects_en">
-                            <xsl:for-each select="subject/title[@lang = 'en']">
-                                <string><xsl:value-of select="text()"/></string>
-                            </xsl:for-each>
-                        </array>
-                    </xsl:if>
-                    <xsl:if test="subject/title[@lang = 'fr']">
-                        <array key="subjects_fr">
-                            <xsl:for-each select="subject/title[@lang = 'fr']">
-                                <string><xsl:value-of select="text()"/></string>
-                            </xsl:for-each>
-                        </array>
-                    </xsl:if>
-                    <array key="authors">
-                        <xsl:for-each select="authors/Author">
-                            <string><xsl:value-of select="name"/></string>
-                        </xsl:for-each>
-                    </array>
-                    <xsl:if test="host">
-                        <array key="hosts">
-                            <xsl:for-each select="host">
-                                <string><xsl:value-of select="text()"/></string>
-                            </xsl:for-each>
-                        </array>
-                    </xsl:if>
-                    <xsl:if test="speaker">
-                        <array key="speakers">
-                            <xsl:for-each select="speaker">
-                                <string><xsl:value-of select="text()"/></string>
-                            </xsl:for-each>
-                        </array>
-                    </xsl:if>
-                    <array key="publishers">
-                        <xsl:for-each select="publishers/Publisher">
-                            <string><xsl:value-of select="title, city"/></string>
-                        </xsl:for-each>
-                    </array> 
-                    <string key="thumbnail"><xsl:value-of 
-                        select="concat('https:', (coverImages/coverImage[@width='340']/@href, 
-                        '//assets.oecdcode.org/covers/340/default.jpg')[1])
-                        "/></string>
-                </map>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:message>Currently ignoring documents in language: <xsl:value-of select="$lang"/>, sorry! :-(</xsl:message>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:template>
-    
-    <xsl:template match="isPartOf|articles|tables|graphs" mode="#all"/>
 </xsl:stylesheet>
