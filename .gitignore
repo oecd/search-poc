@@ -6,3 +6,4 @@ search-poc.properties
 TMP
 libs/*.jar
 *.proj
+*.xpr
