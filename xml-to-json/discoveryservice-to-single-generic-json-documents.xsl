@@ -92,8 +92,10 @@
                             </array>
                         </xsl:if>
                         <string key="image_url"><xsl:value-of 
-                            select="concat('https:', (coverImages/coverImage[@width='340']/@href, 
-                            'https://placekitten.com/g/340/460')[1])
+                            select="(
+                            concat('https:', coverImages/coverImage[@width='340']/@href), 
+                            'https://placekitten.com/g/340/460'
+                            )[1]
                             "/></string>
                     </map>
                 </xsl:variable>
