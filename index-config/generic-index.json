@@ -69,7 +69,7 @@
             "searchable": false,
             "filterable": true,
             "retrievable": true,
-            "sortable": false,
+            "sortable": true,
             "facetable": true,
             "key": false,
             "indexAnalyzer": null,
